@@ -352,6 +352,44 @@
       -webkit-overflow-scrolling: touch;
       scroll-behavior: smooth;
     }
+    /* Student modal improvements */
+    #studentCheckboxList label {
+      display: flex;
+      align-items: center;
+      padding: 8px 0;
+      cursor: pointer;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    
+    #studentCheckboxList label:hover {
+      background-color: #f8f9fa;
+    }
+    
+    #studentCheckboxList input[type="checkbox"] {
+      margin-right: 10px;
+      transform: scale(1.2);
+    }
+    
+    #studentCheckboxList span {
+      color: #1a73e8;
+      font-weight: 600;
+    }
+    
+    /* Search input improvements */
+    #studentSearch {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 16px;
+      margin-bottom: 15px;
+      transition: border-color 0.2s;
+    }
+    
+    #studentSearch:focus {
+      border-color: #1a73e8;
+      outline: none;
+    }
   </style>
 </head>
 <body>
@@ -482,7 +520,7 @@
 
   <script>
     // ========== CONFIG ==========
-    const BACKEND_URL = "https://script.google.com/macros/s/AKfycby-Cez2EXSvBf07GFH4MwV71JMHNv-bDDJuS-bbG2He_AUIrBlYzdYirNni99wcIetM/exec";
+    const BACKEND_URL = "https://script.google.com/macros/s/AKfycbz5gbh_3i9FIxOp5j01BcdJmD2a96C2hyLNrZ7Pk7mGgwzuPdx5cLw0yX5fcOrr-jFP/exec";
     // ============================
 
     // Service Worker for caching
@@ -841,9 +879,13 @@
           if (Array.isArray(data)) {
             callback(data); // data is an array of enrollment numbers
           } else {
-            alert(data.error || "Failed to fetch present students.");
+            console.error('Error fetching present students:', data);
             callback([]);
           }
+        })
+        .catch(err => {
+          console.error('Error fetching present students:', err);
+          callback([]);
         });
     }
     // Display attendance list using matrix model (optimized version)
@@ -1062,23 +1104,30 @@
       // Get the current present students as an array
       const present = document.querySelector('input[name="presentStudents"]').value
         .split(',').map(s => s.trim()).filter(Boolean);
-      fetch(BACKEND_URL + '?method=getAllEnrollmentNumbers')
+      
+      fetch(BACKEND_URL + '?method=getStudentNamesAndEnrollmentNumbers')
         .then(res => res.json())
-        .then(enrollmentNumbers => {
+        .then(students => {
           const list = document.getElementById('studentCheckboxList');
           list.innerHTML = '';
-          (enrollmentNumbers || []).forEach(num => {
-            const checked = present.includes(String(num).trim()) ? 'checked' : '';
+          
+          (students || []).forEach(student => {
+            const checked = present.includes(student.enrollment) ? 'checked' : '';
             list.innerHTML += `
               <div>
                 <label>
-                  <input type="checkbox" value="${num}" ${checked}>
-                  ${num}
+                  <input type="checkbox" value="${student.enrollment}" ${checked}>
+                  <span style="font-weight: 500;">${student.enrollment}</span> - ${student.name}
                 </label>
               </div>
             `;
           });
+          
           document.getElementById('studentModal').style.display = 'flex';
+        })
+        .catch(err => {
+          console.error('Error loading students:', err);
+          alert('Error loading student list. Please try again.');
         });
     }
 
